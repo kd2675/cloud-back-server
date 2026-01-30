@@ -145,6 +145,19 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://auth-back-server")
                 )
 
+                // ============================================================
+                // ZeroQ Back Service - Core APIs
+                // ============================================================
+                .route("zeroq-back-service-api", r -> r
+                        .path("/api/v1/**")
+                        .filters(
+                                f -> f
+                                        .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                        .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://zeroq-back-service")
+                )
+
                 // Order Service
                 // .route("order-service", r -> r
                 //         .path("/api/orders/**")
