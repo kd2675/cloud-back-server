@@ -1,5 +1,7 @@
 package cloud.back.server.config;
 
+import cloud.back.server.filter.PostLoggingFilter;
+import cloud.back.server.filter.PreLoggingFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -79,7 +81,7 @@ public class AdvancedGatewayConfiguration {
      * 커스텀 라우팅 설정 (더 세밀한 제어)
      */
     @Bean
-    public RouteLocator advancedRouteLocator(RouteLocatorBuilder builder) {
+    public RouteLocator advancedRouteLocator(RouteLocatorBuilder builder, PreLoggingFilter preLoggingFilter, PostLoggingFilter postLoggingFilter) {
         return builder.routes()
                 // ============================================================
                 // Auth Service - 인증 관련 엔드포인트
@@ -88,31 +90,31 @@ public class AdvancedGatewayConfiguration {
                         .path("/auth/login")
                         .and().method(HttpMethod.POST)
                         .filters(f -> f.addRequestHeader("X-Gateway", "true"))
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 .route("auth-refresh", r -> r
                         .path("/auth/refresh")
                         .and().method(HttpMethod.POST)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 .route("auth-logout", r -> r
                         .path("/auth/logout")
                         .and().method(HttpMethod.POST)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 .route("auth-validate", r -> r
                         .path("/auth/validate")
                         .and().method(HttpMethod.POST)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 .route("auth-jwks", r -> r
                         .path("/.well-known/jwks.json")
                         .and().method(HttpMethod.GET)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 // ============================================================
@@ -121,32 +123,27 @@ public class AdvancedGatewayConfiguration {
                 .route("actuator-health", r -> r
                         .path("/actuator/health")
                         .and().method(HttpMethod.GET)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 .route("actuator-info", r -> r
                         .path("/actuator/info")
                         .and().method(HttpMethod.GET)
-                        .uri("lb://auth-service")
+                        .uri("lb://auth-back-server")
                 )
 
                 // ============================================================
-                // 추후 추가할 서비스들 (주석 처리)
+                // User Service - 사용자 관리 API (auth-back-server에서 제공)
                 // ============================================================
-
-                // User Service
-                // .route("user-service-get-me", r -> r
-                //         .path("/api/users/me")
-                //         .and().method(HttpMethod.GET)
-                //         .filters(f -> f.stripPrefix(1))
-                //         .uri("lb://user-service")
-                // )
-                //
-                // .route("user-service-all", r -> r
-                //         .path("/api/users/**")
-                //         .filters(f -> f.stripPrefix(1))
-                //         .uri("lb://user-service")
-                // )
+                .route("user-api-all", r -> r
+                        .path("/api/users/**")
+                        .filters(
+                                f -> f
+                                        .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                        .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://auth-back-server")
+                )
 
                 // Order Service
                 // .route("order-service", r -> r

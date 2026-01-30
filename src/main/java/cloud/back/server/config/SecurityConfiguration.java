@@ -36,21 +36,22 @@ public class SecurityConfiguration {
 
     /**
      * Security WebFilter Chain (Reactive)
+     *
+     * JWT 인증은 JwtAuthenticationFilter (GlobalFilter)에서 처리합니다.
+     * 여기서는 CORS만 설정하고 모든 요청을 통과시킵니다.
+     *
+     * JwtAuthenticationFilter에서 처리하는 경로:
+     * - 인증 불필요: /auth/**, /.well-known/**, /actuator/**, POST /api/users
+     * - 인증 필요: 그 외 모든 요청
      */
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Auth 서비스는 인증 없이 접근 가능
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/auth/**").permitAll()
-                        .pathMatchers("/actuator/**").permitAll()
-                        // 나머지는 모두 인증 필수
-                        .anyExchange().authenticated()
+                        .anyExchange().permitAll()
                 )
-                // OAuth2 Resource Server - JWT 자동 검증
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
                 .build();
     }
 }

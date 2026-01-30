@@ -3,13 +3,12 @@ server:
 
 spring:
   application:
-    name: cloud-gateway
-  
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:9000
+    name: cloud-back-server
+
+# JWT 설정 (auth-back-server와 동일한 secret 사용)
+app:
+  jwt:
+    secret: your-super-secret-key-change-this-in-production-12345-this-in-production-12345
 
 eureka:
   client:
