@@ -30,7 +30,6 @@ import java.util.List;
  * - 인증이 필요한 경로에 대해 JWT 토큰 검증
  * - 인증 불필요 경로는 통과
  */
-@Component
 @Slf4j
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
@@ -49,6 +48,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<PathPattern> PUBLIC_PATHS = List.of(
             // Auth endpoints
             new PathPattern("/auth/**", null),
+            new PathPattern("/login/**", null),
+            new PathPattern("/oauth2/**", null),
             new PathPattern("/.well-known/**", null),
 
             // Actuator
@@ -76,29 +77,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
 
         try {
-            // ⭐ 핵심 수정: 여기서 딱 한 번만 파싱합니다!
-            Claims claims = Jwts.parser()
+            // ⭐ 핵심: 여기서는 토큰의 유효성 검증만 수행합니다.
+            Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+                    .parseSignedClaims(token);
 
-            // 파싱된 claims에서 데이터 추출
-            String username = claims.getSubject();
-            Long userId = claims.get("userId", Long.class);
-            String role = claims.get("role", String.class);
-
-            // ⭐ 한글 이름 인코딩 (필수)
-            String encodedUsername = username != null
-                    ? URLEncoder.encode(username, StandardCharsets.UTF_8) : "";
-
-            ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-User-Name", encodedUsername)
-                    .header("X-User-Id", userId != null ? userId.toString() : "")
-                    .header("X-User-Role", role != null ? role : "")
-                    .build();
-
-            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+            // 헤더 추가 로직은 UserHeaderFilter가 담당하므로, 여기서는 그냥 통과시킵니다.
+            return chain.filter(exchange);
 
         } catch (ExpiredJwtException e) {
             return onError(exchange, "Token has expired", HttpStatus.UNAUTHORIZED);
