@@ -129,6 +129,7 @@ public class AdvancedGatewayConfiguration {
                         .path("/oauth2/**")
                         .uri("lb://auth-back-server")
                 )
+
                 // ... (existing routes)
                 // ============================================================
                 // User Service - 사용자 관리 API (auth-back-server에서 제공)
@@ -146,7 +147,7 @@ public class AdvancedGatewayConfiguration {
                 // ZeroQ Back Service - Core APIs
                 // ============================================================
                 .route("zeroq-back-service-api", r -> r
-                        .path("/api/v1/**")
+                        .path("/api/zeroq/v1/**")
                         .filters(f -> f
                                 .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
                                 .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
@@ -154,7 +155,30 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://zeroq-back-service")
                 )
 
-                // ... (existing routes)
+                // ============================================================
+                // semo Back Service - Core APIs
+                // ============================================================
+                .route("semo-back-service-api", r -> r
+                        .path("/api/semo/v1/**")
+                        .filters(f -> f
+                                .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://semo-back-service")
+                )
+
+                // ============================================================
+                // muse Back Service - Core APIs
+                // ============================================================
+                .route("muse-back-service-api", r -> r
+                        .path("/api/muse/v1/**")
+                        .filters(f -> f
+                                .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://muse-back-service")
+                )
+
                 .build();
     }
 }
