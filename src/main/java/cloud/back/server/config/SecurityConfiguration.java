@@ -65,6 +65,10 @@ public class SecurityConfiguration {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/home").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/contests/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/gallery/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/artworks/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
