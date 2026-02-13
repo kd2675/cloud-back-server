@@ -2,13 +2,17 @@ server:
   port: 8080
 
 spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:cloud-back-server/.env[.properties]
   application:
     name: cloud-back-server
 
 # JWT 설정 (auth-back-server와 동일한 secret 사용)
 app:
   jwt:
-    secret: your-super-secret-key-change-this-in-production-12345-this-in-production-12345
+    secret: ${CLOUD_JWT_SECRET}
 
 eureka:
   client:
