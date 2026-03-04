@@ -66,6 +66,7 @@ public class SecurityConfiguration {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/home").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/overview").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/contests/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/gallery/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/artworks/**").permitAll()
