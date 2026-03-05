@@ -1,0 +1,12 @@
+spring:
+  cloud:
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+app:
+  jwt:
+    secret: test-secret-key-for-cloud-back-server-jwt-hs512-minimum-length-64-chars-1234567890
