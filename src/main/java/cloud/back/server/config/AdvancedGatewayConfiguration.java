@@ -127,6 +127,13 @@ public class AdvancedGatewayConfiguration {
 
                 .route("auth-oauth2", r -> r
                         .path("/oauth2/**")
+                        .filters(f -> f.preserveHostHeader())
+                        .uri("lb://auth-back-server")
+                )
+
+                .route("auth-oauth2-login-callback", r -> r
+                        .path("/login/**")
+                        .filters(f -> f.preserveHostHeader())
                         .uri("lb://auth-back-server")
                 )
 

@@ -85,7 +85,13 @@ public class SecurityConfiguration {
                 "http://61.80.148.197:3000",
                 "http://localhost:3001",
                 "http://127.0.0.1:3001",
-                "http://61.80.148.197:3001"
+                "http://61.80.148.197:3001",
+                "http://localhost:3002",
+                "http://127.0.0.1:3002",
+                "http://61.80.148.197:3002",
+                "http://localhost:3003",
+                "http://127.0.0.1:3003",
+                "http://61.80.148.197:3003"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
