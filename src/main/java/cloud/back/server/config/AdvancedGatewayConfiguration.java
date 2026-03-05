@@ -109,6 +109,18 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://auth-back-server")
                 )
 
+                .route("auth-bff-login", r -> r
+                        .path("/auth/bff/**")
+                        .filters(f -> f.preserveHostHeader())
+                        .uri("lb://auth-back-server")
+                )
+
+                .route("auth-session", r -> r
+                        .path("/auth/session")
+                        .and().method(HttpMethod.GET)
+                        .uri("lb://auth-back-server")
+                )
+
                 .route("auth-logout", r -> r
                         .path("/auth/logout")
                         .and().method(HttpMethod.POST)
@@ -127,6 +139,13 @@ public class AdvancedGatewayConfiguration {
 
                 .route("auth-oauth2", r -> r
                         .path("/oauth2/**")
+                        .filters(f -> f.preserveHostHeader())
+                        .uri("lb://auth-back-server")
+                )
+
+                .route("auth-oauth2-callback", r -> r
+                        .path("/login/**")
+                        .filters(f -> f.preserveHostHeader())
                         .uri("lb://auth-back-server")
                 )
 

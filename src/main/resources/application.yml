@@ -13,6 +13,8 @@ spring:
 app:
   jwt:
     secret: ${CLOUD_JWT_SECRET}
+  oauth2:
+    jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
 
 eureka:
   client:
