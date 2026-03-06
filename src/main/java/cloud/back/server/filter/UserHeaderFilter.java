@@ -27,16 +27,18 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
                 .map(jwtAuth -> jwtAuth.getToken())
                 .map(jwt -> {
                     String username = jwt.getSubject();
-                    Object userId = jwt.getClaims().get("userId");
+                    Object userKeyClaim = jwt.getClaims().get("userKey");
                     String role = (String) jwt.getClaims().get("role");
 
                     String encodedUsername = username != null
                             ? URLEncoder.encode(username, StandardCharsets.UTF_8)
                             : "";
 
+                    String userKey = resolveUserKey(userKeyClaim);
+
                     ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                             .header("X-User-Name", encodedUsername)
-                            .header("X-User-Id", userId != null ? userId.toString() : "")
+                            .header("X-User-Key", userKey)
                             .header("X-User-Role", role != null ? role : "")
                             .build();
 
@@ -49,5 +51,12 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
     @Override
     public int getOrder() {
         return -50;
+    }
+
+    private String resolveUserKey(Object userKeyClaim) {
+        if (userKeyClaim instanceof String value) {
+            return value;
+        }
+        return "";
     }
 }

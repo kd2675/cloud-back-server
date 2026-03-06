@@ -16,5 +16,5 @@ API 게이트웨이 서비스입니다. 요청 라우팅과 JWT 검증을 수행
 
 ## 주요 노트
 - 공개 경로 외 모든 요청은 `Authorization: Bearer <token>`이 필요합니다.
-- 인증 성공 시 `X-User-Id`, `X-User-Name`, `X-User-Role` 헤더가 주입됩니다.
+- 인증 성공 시 `X-User-Key`, `X-User-Name`, `X-User-Role` 헤더가 주입됩니다.
 - 유레카 클라이언트로 동작합니다.
