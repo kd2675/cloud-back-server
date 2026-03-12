@@ -162,6 +162,16 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://zeroq-back-sensor")
                 )
 
+                .route("zeroq-gateway-internal-sensor-api", r -> r
+                        .path("/internal/zeroq/gateway/sensor/**")
+                        .filters(f -> f
+                                .rewritePath("/internal/zeroq/gateway/(?<segment>.*)", "/api/zeroq/v1/${segment}")
+                                .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://zeroq-back-sensor")
+                )
+
                 .route("zeroq-back-service-api", r -> r
                         .path("/api/zeroq/v1/**")
                         .filters(f -> f

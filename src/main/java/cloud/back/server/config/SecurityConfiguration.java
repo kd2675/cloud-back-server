@@ -1,5 +1,7 @@
 package cloud.back.server.config;
 
+import cloud.back.server.security.GatewayServiceAuthenticationConverter;
+import cloud.back.server.security.GatewayServiceAuthenticationManager;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -16,7 +18,10 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -59,6 +64,27 @@ public class SecurityConfiguration {
 
     @Bean
     @Order(2)
+    public SecurityWebFilterChain gatewayServiceFilterChain(
+            ServerHttpSecurity http,
+            GatewayServiceAuthenticationManager gatewayServiceAuthenticationManager,
+            GatewayServiceAuthenticationConverter gatewayServiceAuthenticationConverter
+    ) {
+        AuthenticationWebFilter gatewayAuthFilter = new AuthenticationWebFilter(gatewayServiceAuthenticationManager);
+        gatewayAuthFilter.setServerAuthenticationConverter(gatewayServiceAuthenticationConverter);
+        gatewayAuthFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
+
+        return http
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/internal/zeroq/gateway/**"))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+                .authorizeExchange(exchanges -> exchanges.anyExchange().authenticated())
+                .addFilterAt(gatewayAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .build();
+    }
+
+    @Bean
+    @Order(3)
     public SecurityWebFilterChain defaultSecurityFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)

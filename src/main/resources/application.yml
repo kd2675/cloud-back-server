@@ -14,6 +14,11 @@ app:
   jwt:
     secret: ${CLOUD_JWT_SECRET}
 
+gateway:
+  auth:
+    shared-secret: ${ZEROQ_GATEWAY_SHARED_SECRET:zeroq-gateway-local-shared-secret}
+    allowed-clock-skew-seconds: ${ZEROQ_GATEWAY_ALLOWED_CLOCK_SKEW_SECONDS:300}
+
 eureka:
   client:
     serviceUrl:
