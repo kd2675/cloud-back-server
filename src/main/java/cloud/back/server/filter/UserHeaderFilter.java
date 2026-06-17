@@ -14,10 +14,20 @@ import reactor.core.publisher.Mono;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Component
 @Slf4j
 public class UserHeaderFilter implements GlobalFilter, Ordered {
+    private static final List<String> INTERNAL_AUTH_HEADERS = List.of(
+            "X-User-Name",
+            "X-User-Key",
+            "X-User-Role",
+            "X-Gateway-Id",
+            "X-Gateway-Timestamp",
+            "X-Gateway-Nonce",
+            "X-Gateway-Signature"
+    );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -26,7 +36,7 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
                 .map(authentication -> {
                     if (authentication instanceof GatewayServiceAuthenticationToken gatewayAuthentication) {
                         String gatewayId = gatewayAuthentication.getGatewayId();
-                        ServerHttpRequest request = exchange.getRequest().mutate()
+                        ServerHttpRequest request = sanitizedRequestBuilder(exchange)
                                 .header("X-User-Name", URLEncoder.encode(gatewayId, StandardCharsets.UTF_8))
                                 .header("X-User-Key", "gateway:" + gatewayId)
                                 .header("X-User-Role", "GATEWAY")
@@ -47,7 +57,7 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
 
                         String userKey = resolveUserKey(userKeyClaim);
 
-                        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                        ServerHttpRequest mutatedRequest = sanitizedRequestBuilder(exchange)
                                 .header("X-User-Name", encodedUsername)
                                 .header("X-User-Key", userKey)
                                 .header("X-User-Role", role != null ? role : "")
@@ -58,7 +68,7 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
 
                     return exchange;
                 })
-                .defaultIfEmpty(exchange)
+                .defaultIfEmpty(exchange.mutate().request(sanitizeRequest(exchange)).build())
                 .flatMap(chain::filter);
     }
 
@@ -72,5 +82,14 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
             return value;
         }
         return "";
+    }
+
+    private ServerHttpRequest sanitizeRequest(ServerWebExchange exchange) {
+        return sanitizedRequestBuilder(exchange).build();
+    }
+
+    private ServerHttpRequest.Builder sanitizedRequestBuilder(ServerWebExchange exchange) {
+        return exchange.getRequest().mutate()
+                .headers(headers -> INTERNAL_AUTH_HEADERS.forEach(headers::remove));
     }
 }
