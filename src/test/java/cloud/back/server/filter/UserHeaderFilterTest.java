@@ -96,6 +96,37 @@ class UserHeaderFilterTest {
         assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Signature")).isFalse();
     }
 
+    @Test
+    void filter_stockBatchGatewayAuthentication_replacesSpoofedHeadersWithGatewayPrincipal() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/internal/stock-batch/v1/jobs/order-execution/run")
+                .header("X-User-Key", "spoofed-user")
+                .header("X-User-Role", "ADMIN")
+                .header("X-Gateway-Signature", "incoming-signature")
+        );
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+        GatewayServiceAuthenticationToken authentication = GatewayServiceAuthenticationToken.authenticated(
+                "stock-smoke-gateway",
+                "POST",
+                "/internal/stock-batch/v1/jobs/order-execution/run",
+                "123",
+                "nonce",
+                "signature"
+        );
+
+        filter.filter(exchange, chain)
+                .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
+                .block();
+
+        assertThat(chain.capturedExchange()).isNotNull();
+        assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-User-Key"))
+                .isEqualTo(List.of("gateway:stock-smoke-gateway"));
+        assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-User-Role"))
+                .isEqualTo(List.of("GATEWAY"));
+        assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-Gateway-Id"))
+                .isEqualTo(List.of("stock-smoke-gateway"));
+        assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Signature")).isFalse();
+    }
+
     private static class CapturingGatewayFilterChain implements GatewayFilterChain {
         private final AtomicReference<ServerWebExchange> capturedExchange = new AtomicReference<>();
 

@@ -9,6 +9,7 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -24,6 +25,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RequiredArgsConstructor
 public class AdvancedGatewayConfiguration {
+
+    @Value("${stock.batch.internal.token:}")
+    private String stockBatchInternalToken;
 
     @Bean
     @LoadBalanced
@@ -142,7 +146,7 @@ public class AdvancedGatewayConfiguration {
                 // User Service - 사용자 관리 API (auth-back-server에서 제공)
                 // ============================================================
                 .route("user-api-all", r -> r
-                        .path("/api/users/**")
+                        .path("/api/users", "/api/users/**")
                         .filters(f -> f
                                 .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
                                 .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
@@ -203,6 +207,29 @@ public class AdvancedGatewayConfiguration {
                                 .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
                         )
                         .uri("lb://muse-back-service")
+                )
+
+                // ============================================================
+                // stock Back Service - Mock Trading APIs
+                // ============================================================
+                .route("stock-back-service-api", r -> r
+                        .path("/api/stock/v1/**")
+                        .filters(f -> f
+                                .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://stock-back-service")
+                )
+
+                .route("stock-batch-internal-jobs", r -> r
+                        .path("/internal/stock-batch/v1/jobs/**")
+                        .and().method(HttpMethod.POST)
+                        .filters(f -> f
+                                .setRequestHeader("X-Internal-Token", stockBatchInternalToken)
+                                .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))
+                                .filter(postLoggingFilter.apply(new PostLoggingFilter.Config()))
+                        )
+                        .uri("lb://stock-batch-service")
                 )
 
                 .build();

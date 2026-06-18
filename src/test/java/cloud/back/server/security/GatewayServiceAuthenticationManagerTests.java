@@ -13,6 +13,15 @@ class GatewayServiceAuthenticationManagerTests {
 
     @Test
     void authenticateShouldAcceptValidSignature() throws Exception {
+        assertValidSignatureForPath("/internal/zeroq/gateway/sensor/ingest/gateway-heartbeat");
+    }
+
+    @Test
+    void authenticateShouldAcceptStockBatchJobPathSignature() throws Exception {
+        assertValidSignatureForPath("/internal/stock-batch/v1/jobs/order-execution/run");
+    }
+
+    private void assertValidSignatureForPath(String path) throws Exception {
         GatewayServiceAuthProperties properties = new GatewayServiceAuthProperties();
         properties.setSharedSecret("test-shared-secret");
         properties.setAllowedClockSkewSeconds(300);
@@ -20,7 +29,6 @@ class GatewayServiceAuthenticationManagerTests {
 
         String gatewayId = "GW-STORE-001";
         String method = "POST";
-        String path = "/internal/zeroq/gateway/sensor/ingest/gateway-heartbeat";
         String timestamp = String.valueOf(Instant.now().toEpochMilli());
         String nonce = UUID.randomUUID().toString();
         String signature = GatewayServiceAuthenticationManager.hmacHex(

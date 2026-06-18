@@ -74,7 +74,10 @@ public class SecurityConfiguration {
         gatewayAuthFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
 
         return http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/internal/zeroq/gateway/**"))
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
+                        "/internal/zeroq/gateway/**",
+                        "/internal/stock-batch/v1/jobs/**"
+                ))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
@@ -96,6 +99,8 @@ public class SecurityConfiguration {
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/contests/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/gallery/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/muse/v1/artworks/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/system/status").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/markets/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
@@ -117,7 +122,10 @@ public class SecurityConfiguration {
                 "http://61.80.148.197:3002",
                 "http://localhost:3003",
                 "http://127.0.0.1:3003",
-                "http://61.80.148.197:3003"
+                "http://61.80.148.197:3003",
+                "http://localhost:3005",
+                "http://127.0.0.1:3005",
+                "http://61.80.148.197:3005"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

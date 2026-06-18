@@ -16,7 +16,7 @@ app:
 
 gateway:
   auth:
-    shared-secret: ${ZEROQ_GATEWAY_SHARED_SECRET:zeroq-gateway-local-shared-secret}
+    shared-secret: ${ZEROQ_GATEWAY_SHARED_SECRET:}
     allowed-clock-skew-seconds: ${ZEROQ_GATEWAY_ALLOWED_CLOCK_SKEW_SECONDS:300}
 
 eureka:
