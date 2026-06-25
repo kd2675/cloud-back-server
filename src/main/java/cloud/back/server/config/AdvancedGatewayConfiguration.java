@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class AdvancedGatewayConfiguration {
 
-    @Value("${stock.batch.internal.token:}")
+    @Value("${stock.batch.internal.token}")
     private String stockBatchInternalToken;
 
     @Bean
@@ -223,7 +223,7 @@ public class AdvancedGatewayConfiguration {
 
                 .route("stock-batch-internal-jobs", r -> r
                         .path("/internal/stock-batch/v1/jobs/**")
-                        .and().method(HttpMethod.POST)
+                        .and().method(HttpMethod.GET, HttpMethod.POST, HttpMethod.PATCH)
                         .filters(f -> f
                                 .setRequestHeader("X-Internal-Token", stockBatchInternalToken)
                                 .filter(preLoggingFilter.apply(new PreLoggingFilter.Config()))

@@ -65,9 +65,11 @@ class SecurityConfigurationTest {
 
     @Test
     void stockBatchJobApi_withoutGatewayAuthorization_isRejectedBySecurity() {
+        assertThat(getStatus("/internal/stock-batch/v1/jobs/runtime-controls")).isEqualTo(401);
         assertThat(postStatus("/internal/stock-batch/v1/jobs/market-data/refresh")).isEqualTo(401);
-        assertThat(postStatus("/internal/stock-batch/v1/jobs/order-execution/run")).isEqualTo(401);
+        assertThat(postStatus("/internal/stock-batch/v1/jobs/order-book-execution/run")).isEqualTo(401);
         assertThat(postStatus("/internal/stock-batch/v1/jobs/portfolio-settlement/run")).isEqualTo(401);
+        assertThat(patchStatus("/internal/stock-batch/v1/jobs/runtime-controls/auto-market")).isEqualTo(401);
     }
 
     @Test
@@ -136,11 +138,16 @@ class SecurityConfigurationTest {
 
         assertThat(stockBatchRoute).isNotNull();
         assertThat(stockBatchRoute.getUri().toString()).isEqualTo("lb://stock-batch-service");
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.GET, "/internal/stock-batch/v1/jobs/runtime-controls")).isTrue();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.GET, "/internal/stock-batch/v1/jobs/auto-participant-cash-flow/status")).isTrue();
         assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/market-data/refresh")).isTrue();
-        assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/order-execution/run")).isTrue();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/order-book-execution/run")).isTrue();
         assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/portfolio-settlement/run")).isTrue();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/auto-participant-cash-flow/run")).isTrue();
         assertThat(routeMatches(stockBatchRoute, HttpMethod.POST, "/internal/stock-batch/v1/jobs/unknown")).isTrue();
-        assertThat(routeMatches(stockBatchRoute, HttpMethod.GET, "/internal/stock-batch/v1/jobs/order-execution/run")).isFalse();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.PATCH, "/internal/stock-batch/v1/jobs/runtime-controls/auto-market")).isTrue();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.PATCH, "/internal/stock-batch/v1/jobs/auto-participant-cash-flow/status")).isTrue();
+        assertThat(routeMatches(stockBatchRoute, HttpMethod.DELETE, "/internal/stock-batch/v1/jobs/order-book-execution/run")).isFalse();
         assertThat(routeMatches(stockBatchRoute, HttpMethod.GET, "/internal/stock-batch/v1/system/status")).isFalse();
     }
 
@@ -187,6 +194,14 @@ class SecurityConfigurationTest {
     private int deleteStatus(String uri) {
         return WebClient.create("http://localhost:" + port)
                 .delete()
+                .uri(uri)
+                .exchangeToMono(response -> reactor.core.publisher.Mono.just(response.statusCode().value()))
+                .block();
+    }
+
+    private int patchStatus(String uri) {
+        return WebClient.create("http://localhost:" + port)
+                .patch()
                 .uri(uri)
                 .exchangeToMono(response -> reactor.core.publisher.Mono.just(response.statusCode().value()))
                 .block();

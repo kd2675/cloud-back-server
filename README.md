@@ -46,6 +46,7 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - `lb://semo-back-service`
 - `lb://muse-back-service`
 - `lb://stock-back-service`
+- `lb://stock-batch-service`
 
 ## Stock 연동
 - `GET /api/stock/v1/system/status`와 `GET /api/stock/v1/markets/**`는 공개 조회 API입니다.
@@ -55,10 +56,15 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 ## 내부 게이트웨이 경로
 - `/internal/zeroq/gateway/sensor/**`
   - gateway 전용 체인에서 HMAC 서명을 검증한 뒤 `zeroq-back-sensor`의 `/api/zeroq/v1/sensor/**`로 rewrite 라우팅합니다.
+- `/internal/stock-batch/v1/jobs/**`
+  - gateway 전용 체인에서 HMAC 서명을 검증한 뒤 `stock-batch-service`로 라우팅합니다.
+  - `GET`, `POST`, `PATCH` job 실행/제어 API만 라우팅합니다.
+  - downstream 요청에는 `STOCK_BATCH_INTERNAL_TOKEN` 값을 `X-Internal-Token`으로 주입합니다.
 
 ## 참고
 - JWT secret은 `CLOUD_JWT_SECRET`로 주입합니다.
 - gateway shared secret은 `ZEROQ_GATEWAY_SHARED_SECRET`로 주입합니다.
+- stock-batch 내부 API 토큰은 `STOCK_BATCH_INTERNAL_TOKEN`로 주입합니다.
 - gateway shared secret 기본값은 비어 있습니다. 내부 gateway 경로를 쓰려면 로컬에서도 명시적으로 설정해야 합니다.
 - CORS 허용 origin은 현재 `3000`~`3003`, `3005` 프론트 개발 포트 위주로 설정돼 있습니다.
 - 인증 후 사용자 정보는 필터에서 downstream 헤더로 전달됩니다.

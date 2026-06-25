@@ -98,7 +98,7 @@ class UserHeaderFilterTest {
 
     @Test
     void filter_stockBatchGatewayAuthentication_replacesSpoofedHeadersWithGatewayPrincipal() {
-        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/internal/stock-batch/v1/jobs/order-execution/run")
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/internal/stock-batch/v1/jobs/order-book-execution/run")
                 .header("X-User-Key", "spoofed-user")
                 .header("X-User-Role", "ADMIN")
                 .header("X-Gateway-Signature", "incoming-signature")
@@ -107,7 +107,7 @@ class UserHeaderFilterTest {
         GatewayServiceAuthenticationToken authentication = GatewayServiceAuthenticationToken.authenticated(
                 "stock-smoke-gateway",
                 "POST",
-                "/internal/stock-batch/v1/jobs/order-execution/run",
+                "/internal/stock-batch/v1/jobs/order-book-execution/run",
                 "123",
                 "nonce",
                 "signature"

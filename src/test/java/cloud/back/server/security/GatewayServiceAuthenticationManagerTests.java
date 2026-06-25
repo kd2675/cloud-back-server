@@ -18,7 +18,7 @@ class GatewayServiceAuthenticationManagerTests {
 
     @Test
     void authenticateShouldAcceptStockBatchJobPathSignature() throws Exception {
-        assertValidSignatureForPath("/internal/stock-batch/v1/jobs/order-execution/run");
+        assertValidSignatureForPath("/internal/stock-batch/v1/jobs/order-book-execution/run");
     }
 
     private void assertValidSignatureForPath(String path) throws Exception {
