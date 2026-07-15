@@ -4,6 +4,7 @@ import cloud.back.server.security.GatewayServiceAuthenticationConverter;
 import cloud.back.server.security.GatewayServiceAuthenticationManager;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,11 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
@@ -37,15 +43,23 @@ public class SecurityConfiguration {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
+    @Value("${app.security.issuer}")
+    private String issuer;
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder() {
         SecretKey secretKey = new SecretKeySpec(
                 jwtSecret.getBytes(StandardCharsets.UTF_8),
                 "HmacSHA512"
         );
-        return NimbusReactiveJwtDecoder.withSecretKey(secretKey)
+        NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS512)
                 .build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuer));
+        return decoder;
     }
 
     @Bean
@@ -53,7 +67,7 @@ public class SecurityConfiguration {
     public SecurityWebFilterChain publicEndpointsFilterChain(ServerHttpSecurity http) {
         return http
                 .securityMatcher(ServerWebExchangeMatchers.pathMatchers(
-                        "/auth/login", "/auth/refresh",
+                        "/auth/login", "/auth/refresh", "/auth/logout",
                         "/oauth2/**", "/login/**", "/.well-known/**", "/actuator/**"
                 ))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
@@ -88,45 +102,108 @@ public class SecurityConfiguration {
 
     @Bean
     @Order(3)
+    public SecurityWebFilterChain stockApiFilterChain(ServerHttpSecurity http) {
+        return http
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/api/stock/**"))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/system/status").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/markets/**").permitAll()
+                        .anyExchange().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(audienceDecoder("stock-api"))))
+                .build();
+    }
+
+    @Bean
+    @Order(4)
+    public SecurityWebFilterChain museApiFilterChain(ServerHttpSecurity http) {
+        return http
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/api/muse/**"))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/home", "/api/muse/v1/overview").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/contests/**", "/api/muse/v1/gallery/**", "/api/muse/v1/artworks/**").permitAll()
+                        .anyExchange().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(audienceDecoder("muse-api"))))
+                .build();
+    }
+
+    @Bean
+    @Order(5)
+    public SecurityWebFilterChain semoApiFilterChain(ServerHttpSecurity http) {
+        return serviceApiFilterChain(http, "/api/semo/**", "semo-api");
+    }
+
+    @Bean
+    @Order(6)
+    public SecurityWebFilterChain zeroqApiFilterChain(ServerHttpSecurity http) {
+        return serviceApiFilterChain(http, "/api/zeroq/**", "zeroq-api");
+    }
+
+    @Bean
+    @Order(10)
     public SecurityWebFilterChain defaultSecurityFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/api/users").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/home").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/overview").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/contests/**").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/gallery/**").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/muse/v1/artworks/**").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/system/status").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/api/stock/v1/markets/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }
 
+    private SecurityWebFilterChain serviceApiFilterChain(
+            ServerHttpSecurity http,
+            String pathPattern,
+            String audience
+    ) {
+        return http
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers(pathPattern))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeExchange(exchanges -> exchanges.anyExchange().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtDecoder(audienceDecoder(audience))))
+                .build();
+    }
+
+    private ReactiveJwtDecoder audienceDecoder(String audience) {
+        SecretKey secretKey = new SecretKeySpec(
+                jwtSecret.getBytes(StandardCharsets.UTF_8),
+                "HmacSHA512"
+        );
+        NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
+        OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators.createDefaultWithIssuer(issuer);
+        OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<List<String>>(
+                "aud",
+                audiences -> audiences != null && audiences.contains(audience)
+        );
+        OAuth2TokenValidator<Jwt> scopeValidator = new JwtClaimValidator<String>(
+                "scope",
+                scope -> scope != null && Arrays.asList(scope.split(" ")).contains("api")
+        );
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                issuerValidator,
+                audienceValidator,
+                scopeValidator
+        ));
+        return decoder;
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000",
-                "http://61.80.148.197:3000",
-                "http://localhost:3001",
-                "http://127.0.0.1:3001",
-                "http://61.80.148.197:3001",
-                "http://localhost:3002",
-                "http://127.0.0.1:3002",
-                "http://61.80.148.197:3002",
-                "http://localhost:3003",
-                "http://127.0.0.1:3003",
-                "http://61.80.148.197:3003",
-                "http://localhost:3005",
-                "http://127.0.0.1:3005",
-                "http://61.80.148.197:3005"
-        ));
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

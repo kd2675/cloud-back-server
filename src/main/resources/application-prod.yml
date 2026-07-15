@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  security:
+    issuer: ${AUTH_ISSUER}
+  cors:
+    allowed-origins: ${CLOUD_CORS_ALLOWED_ORIGINS}

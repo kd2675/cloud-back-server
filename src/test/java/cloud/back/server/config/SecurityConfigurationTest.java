@@ -1,5 +1,10 @@
 package cloud.back.server.config;
 
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,11 +19,15 @@ import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.util.Date;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class SecurityConfigurationTest {
+
+    private static final String TEST_JWT_SECRET = "test-secret-key-for-cloud-back-server-jwt-hs512-minimum-length-64-chars-1234567890";
 
     @LocalServerPort
     private int port;
@@ -61,6 +70,21 @@ class SecurityConfigurationTest {
         assertThat(postStatus("/api/stock/v1/orders")).isEqualTo(401);
         assertThat(deleteStatus("/api/stock/v1/orders/1")).isEqualTo(401);
         assertThat(getStatus("/api/stock/v1/executions")).isEqualTo(401);
+    }
+
+    @Test
+    void stockProtectedApi_withWrongServiceAudience_isRejectedBySecurity() throws Exception {
+        assertThat(getStatus("/api/stock/v1/users/me", token("muse-api"))).isEqualTo(401);
+    }
+
+    @Test
+    void stockProtectedApi_withStockAudience_passesSecurityBoundary() throws Exception {
+        assertThat(getStatus("/api/stock/v1/users/me", token("stock-api"))).isNotIn(401, 403);
+    }
+
+    @Test
+    void stockProtectedApi_withoutApiScope_isRejectedBySecurity() throws Exception {
+        assertThat(getStatus("/api/stock/v1/users/me", token("stock-api", "profile"))).isEqualTo(401);
     }
 
     @Test
@@ -181,6 +205,35 @@ class SecurityConfigurationTest {
                 .uri(uri)
                 .exchangeToMono(response -> reactor.core.publisher.Mono.just(response.statusCode().value()))
                 .block();
+    }
+
+    private int getStatus(String uri, String token) {
+        return WebClient.create("http://localhost:" + port)
+                .get()
+                .uri(uri)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchangeToMono(response -> reactor.core.publisher.Mono.just(response.statusCode().value()))
+                .block();
+    }
+
+    private String token(String audience) throws Exception {
+        return token(audience, "api");
+    }
+
+    private String token(String audience, String scope) throws Exception {
+        SignedJWT jwt = new SignedJWT(
+                new JWSHeader(JWSAlgorithm.HS512),
+                new JWTClaimsSet.Builder()
+                        .subject("test-user")
+                        .issuer("http://localhost:9000")
+                        .audience(audience)
+                        .issueTime(new Date())
+                        .expirationTime(new Date(System.currentTimeMillis() + 60_000))
+                        .claim("scope", scope)
+                        .build()
+        );
+        jwt.sign(new MACSigner(TEST_JWT_SECRET));
+        return jwt.serialize();
     }
 
     private int postStatus(String uri) {
