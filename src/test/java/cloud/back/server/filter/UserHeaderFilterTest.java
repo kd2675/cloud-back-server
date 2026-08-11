@@ -41,6 +41,7 @@ class UserHeaderFilterTest {
     @Test
     void filter_jwtAuthentication_replacesSpoofedHeadersWithVerifiedClaims() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/semo/v1/profile")
+                .header("Authorization", "Bearer signed-access-token")
                 .header("X-User-Key", "spoofed-user")
                 .header("X-User-Role", "ADMIN")
         );
@@ -63,6 +64,8 @@ class UserHeaderFilterTest {
                 .isEqualTo(List.of("verified-key"));
         assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-User-Role"))
                 .isEqualTo(List.of("USER"));
+        assertThat(chain.capturedExchange().getRequest().getHeaders().get("Authorization"))
+                .isEqualTo(List.of("Bearer signed-access-token"));
     }
 
     @Test

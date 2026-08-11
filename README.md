@@ -69,3 +69,4 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - CORS 허용 origin은 현재 `3000`~`3003`, `3005` 프론트 개발 포트 위주로 설정돼 있습니다.
 - 인증 후 사용자 정보는 필터에서 downstream 헤더로 전달됩니다.
 - gateway service 인증 성공 시 downstream에는 `X-User-Role: GATEWAY`, `X-Gateway-Id`가 전달됩니다.
+- 일반 사용자 요청의 `X-User-*` 입력값은 제거한 뒤 검증된 JWT claim으로 다시 생성합니다. dev/prod의 downstream 서비스 포트는 외부에 공개하지 않고 Cloud에서만 접근 가능한 네트워크 경계로 운영해야 합니다.
