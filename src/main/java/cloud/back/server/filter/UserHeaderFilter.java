@@ -30,6 +30,10 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
             "X-Gateway-Signature"
     );
 
+    /**
+     * 외부 입력의 내부 인증 헤더를 먼저 제거한 뒤 검증된 JWT 또는 gateway 인증에서 다시 주입한다.
+     * 하위 서비스는 이 필터가 만든 X-User-* 값을 UserContext로 해석한다.
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         return ReactiveSecurityContextHolder.getContext()

@@ -28,9 +28,13 @@ public class GatewayRequestBodyHashFilter implements WebFilter, Ordered {
 
     private final GatewayServiceAuthProperties authProperties;
 
+    /**
+     * 서명 대상 내부 요청 body를 제한 크기 안에서 한 번 읽어 SHA-256을 저장하고,
+     * downstream에서도 다시 읽을 수 있도록 동일 바이트로 request body를 복원한다.
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (!isGatewayServicePath(exchange.getRequest().getURI().getRawPath())) {
+        if (!requiresBodyHash(exchange.getRequest().getURI().getRawPath())) {
             return chain.filter(exchange);
         }
 
@@ -61,9 +65,9 @@ public class GatewayRequestBodyHashFilter implements WebFilter, Ordered {
         return Ordered.HIGHEST_PRECEDENCE;
     }
 
-    private boolean isGatewayServicePath(String path) {
-        return path.startsWith("/internal/zeroq/gateway/")
-                || path.startsWith("/internal/stock-batch/v1/jobs/");
+    /** body hash 인증을 적용할 ZeroQ gateway 내부 경로인지 판정한다. */
+    static boolean requiresBodyHash(String path) {
+        return path != null && path.startsWith("/internal/zeroq/gateway/");
     }
 
     private byte[] copyAndRelease(DataBuffer dataBuffer) {

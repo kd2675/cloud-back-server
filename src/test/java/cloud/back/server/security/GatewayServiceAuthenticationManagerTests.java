@@ -18,7 +18,33 @@ class GatewayServiceAuthenticationManagerTests {
 
     @Test
     void authenticateShouldAcceptStockBatchJobPathSignature() throws Exception {
-        assertValidSignatureForPath("/internal/stock-batch/v1/jobs/order-book-execution/run");
+        GatewayServiceAuthProperties properties = new GatewayServiceAuthProperties();
+        properties.setSharedSecret("test-shared-secret");
+        properties.setAllowedClockSkewSeconds(300);
+        GatewayServiceAuthenticationManager manager = new GatewayServiceAuthenticationManager(properties);
+
+        String gatewayId = "STOCK-BATCH-01";
+        String method = "POST";
+        String path = "/internal/stock-batch/v1/jobs/order-book-execution/run";
+        String timestamp = String.valueOf(Instant.now().toEpochMilli());
+        String nonce = UUID.randomUUID().toString();
+        String signature = GatewayServiceAuthenticationManager.hmacHex(
+                GatewayServiceAuthenticationManager.buildPayload(gatewayId, method, path, timestamp, nonce),
+                properties.getSharedSecret()
+        );
+
+        GatewayServiceAuthenticationToken token = new GatewayServiceAuthenticationToken(
+                gatewayId,
+                method,
+                path,
+                timestamp,
+                nonce,
+                null,
+                null,
+                signature
+        );
+
+        assertThat(manager.authenticate(token).block()).isNotNull();
     }
 
     private void assertValidSignatureForPath(String path) throws Exception {
@@ -81,6 +107,29 @@ class GatewayServiceAuthenticationManagerTests {
 
         assertThatThrownBy(() -> manager.authenticate(token).block())
                 .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void authenticate_timestampSubtractionWouldOverflow_rejectsExpiredRequest() {
+        GatewayServiceAuthProperties properties = new GatewayServiceAuthProperties();
+        properties.setSharedSecret("test-shared-secret");
+        properties.setAllowedClockSkewSeconds(300);
+        GatewayServiceAuthenticationManager manager = new GatewayServiceAuthenticationManager(properties);
+
+        GatewayServiceAuthenticationToken token = new GatewayServiceAuthenticationToken(
+                "GW-STORE-001",
+                "POST",
+                "/internal/stock-batch/v1/jobs/order-book-execution/run",
+                String.valueOf(Long.MIN_VALUE),
+                UUID.randomUUID().toString(),
+                null,
+                null,
+                "unused"
+        );
+
+        assertThatThrownBy(() -> manager.authenticate(token).block())
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("timestamp expired");
     }
 
     @Test

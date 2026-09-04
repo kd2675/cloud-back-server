@@ -49,6 +49,7 @@ public class SecurityConfiguration {
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
+    /** 발급 서버 issuer와 HS512 서명을 검증하는 기본 JWT decoder다. */
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder() {
         SecretKey secretKey = new SecretKeySpec(
@@ -62,6 +63,9 @@ public class SecurityConfiguration {
         return decoder;
     }
 
+    /**
+     * 로그인·refresh·OAuth callback처럼 토큰 발급 전에 접근해야 하는 경로만 공개한다.
+     */
     @Bean
     @Order(1)
     public SecurityWebFilterChain publicEndpointsFilterChain(ServerHttpSecurity http) {
@@ -76,6 +80,9 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /**
+     * /internal/zeroq/gateway/** 요청에 timestamp·nonce·body hash·HMAC 기반 장비 인증을 적용한다.
+     */
     @Bean
     @Order(2)
     public SecurityWebFilterChain gatewayServiceFilterChain(
@@ -138,6 +145,7 @@ public class SecurityConfiguration {
         return serviceApiFilterChain(http, "/api/semo/**", "semo-api");
     }
 
+    /** ZeroQ API에 issuer, zeroq-api audience, api scope 검증을 적용한다. */
     @Bean
     @Order(6)
     public SecurityWebFilterChain zeroqApiFilterChain(ServerHttpSecurity http) {
@@ -158,6 +166,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /** 서비스별 path와 audience를 묶어 동일한 JWT 보안 계약을 구성한다. */
     private SecurityWebFilterChain serviceApiFilterChain(
             ServerHttpSecurity http,
             String pathPattern,
@@ -172,6 +181,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /** 공통 서명·issuer 외에 대상 서비스 audience와 api scope를 모두 요구한다. */
     private ReactiveJwtDecoder audienceDecoder(String audience) {
         SecretKey secretKey = new SecretKeySpec(
                 jwtSecret.getBytes(StandardCharsets.UTF_8),
@@ -197,6 +207,7 @@ public class SecurityConfiguration {
         return decoder;
     }
 
+    /** 설정된 프런트 origin만 credential 포함 CORS 요청을 허용한다. */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

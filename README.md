@@ -6,7 +6,7 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - `/auth/**`, `/oauth2/**`, `/login/**` 라우팅
 - `zeroq`, `muse`, `semo`, `stock` API 라우팅
 - JWT 검증
-- gateway service별 HMAC 서명과 실제 request body SHA-256 검증
+- gateway service별 HMAC 서명과 ZeroQ gateway 요청의 실제 request body SHA-256 검증
 - 요청/응답 로깅 필터 적용
 
 ## 포트
@@ -57,7 +57,8 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - `/internal/zeroq/gateway/sensor/**`
   - gateway 전용 체인에서 HMAC 서명을 검증한 뒤 `zeroq-back-sensor`의 `/api/zeroq/v1/sensor/**`로 rewrite 라우팅합니다.
 - `/internal/stock-batch/v1/jobs/**`
-  - gateway 전용 체인에서 HMAC 서명을 검증한 뒤 `stock-batch-service`로 라우팅합니다.
+  - 기존 5개 필드(`gatewayId`, method, path, timestamp, nonce) HMAC 계약을 검증한 뒤 `stock-batch-service`로 라우팅합니다.
+  - 호환성 때문에 request body는 서명하지 않습니다. 신뢰할 수 없는 네트워크에 노출하기 전에 body hash 포함 계약으로 송신자와 함께 전환해야 합니다.
   - `GET`, `POST`, `PATCH` job 실행/제어 API만 라우팅합니다.
   - downstream 요청에는 `STOCK_BATCH_INTERNAL_TOKEN` 값을 `X-Internal-Token`으로 주입합니다.
 
@@ -65,7 +66,8 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - JWT secret은 `CLOUD_JWT_SECRET`로 주입합니다.
 - 단일 로컬 gateway secret은 `ZEROQ_GATEWAY_SHARED_SECRET`로 주입합니다.
 - 여러 운영 gateway는 `gateway.auth.gateway-secrets` map을 `SPRING_APPLICATION_JSON` 등 secret store 연동 방식으로 주입합니다. map이 하나라도 있으면 등록되지 않은 gateway ID에 shared secret fallback을 적용하지 않습니다.
-- 서명 대상 body 상한은 `ZEROQ_GATEWAY_MAX_SIGNED_BODY_BYTES`이며 기본 5MiB입니다.
+- ZeroQ gateway 서명 대상 body 상한은 `ZEROQ_GATEWAY_MAX_SIGNED_BODY_BYTES`이며 기본 5MiB입니다. 이 본문 해시 계약은 stock-batch 내부 호출에는 적용하지 않습니다.
+- nonce replay cache는 현재 gateway 프로세스 메모리에만 있습니다. 다중 인스턴스 배포에서는 공용 replay store가 없으면 인스턴스 간 재전송을 막지 못합니다.
 - stock-batch 내부 API 토큰은 `STOCK_BATCH_INTERNAL_TOKEN`로 주입합니다.
 - gateway secret 기본값은 비어 있습니다. 내부 gateway 경로를 쓰려면 로컬에서도 명시적으로 설정해야 합니다.
 - CORS 허용 origin은 현재 `3000`~`3003`, `3005` 프론트 개발 포트 위주로 설정돼 있습니다.

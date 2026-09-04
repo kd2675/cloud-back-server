@@ -100,6 +100,7 @@ public class AdvancedGatewayConfiguration {
                 // ============================================================
                 // Auth Service - 인증 관련 엔드포인트
                 // ============================================================
+                // POST /auth/login: 자격 증명을 auth-back-server로 전달하고 Gateway 경유 표시를 추가한다.
                 .route("auth-login", r -> r
                         .path("/auth/login")
                         .and().method(HttpMethod.POST)
@@ -107,12 +108,14 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://auth-back-server")
                 )
 
+                // POST /auth/refresh: client별 HttpOnly refresh cookie 회전을 auth-back-server에 위임한다.
                 .route("auth-refresh", r -> r
                         .path("/auth/refresh")
                         .and().method(HttpMethod.POST)
                         .uri("lb://auth-back-server")
                 )
 
+                // POST /auth/logout: access/refresh token 무효화와 cookie 삭제 요청을 전달한다.
                 .route("auth-logout", r -> r
                         .path("/auth/logout")
                         .and().method(HttpMethod.POST)
@@ -123,18 +126,21 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://auth-back-server")
                 )
 
+                // POST /auth/validate: 내부 호환용 JWT 검증 엔드포인트를 전달한다.
                 .route("auth-validate", r -> r
                         .path("/auth/validate")
                         .and().method(HttpMethod.POST)
                         .uri("lb://auth-back-server")
                 )
 
+                // /oauth2/**: OAuth2 authorization 요청의 원래 Host를 보존한다.
                 .route("auth-oauth2", r -> r
                         .path("/oauth2/**")
                         .filters(f -> f.preserveHostHeader())
                         .uri("lb://auth-back-server")
                 )
 
+                // /login/**: OAuth provider callback과 authorization-server 로그인 경로를 전달한다.
                 .route("auth-oauth2-login-callback", r -> r
                         .path("/login/**")
                         .filters(f -> f.preserveHostHeader())
@@ -145,6 +151,7 @@ public class AdvancedGatewayConfiguration {
                 // ============================================================
                 // User Service - 사용자 관리 API (auth-back-server에서 제공)
                 // ============================================================
+                // /api/users 및 하위 경로: 회원가입과 Gateway 인증 사용자 CRUD를 auth-back-server로 전달한다.
                 .route("user-api-all", r -> r
                         .path("/api/users", "/api/users/**")
                         .filters(f -> f
@@ -157,6 +164,7 @@ public class AdvancedGatewayConfiguration {
                 // ============================================================
                 // ZeroQ Back Service - Core APIs
                 // ============================================================
+                // /api/zeroq/v1/sensor/**: 센서 수집·명령·모니터링 전용 서비스가 우선 매칭한다.
                 .route("zeroq-back-sensor-api", r -> r
                         .path("/api/zeroq/v1/sensor/**")
                         .filters(f -> f
@@ -166,6 +174,7 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://zeroq-back-sensor")
                 )
 
+                // 서명된 게이트웨이 내부 경로를 센서 서비스의 공개 컨트롤러 경로로 재작성한다.
                 .route("zeroq-gateway-internal-sensor-api", r -> r
                         .path("/internal/zeroq/gateway/sensor/**")
                         .filters(f -> f
@@ -176,6 +185,7 @@ public class AdvancedGatewayConfiguration {
                         .uri("lb://zeroq-back-sensor")
                 )
 
+                // 나머지 /api/zeroq/v1/**: 공간·사용자·관리자·센서 브리지 API로 전달한다.
                 .route("zeroq-back-service-api", r -> r
                         .path("/api/zeroq/v1/**")
                         .filters(f -> f

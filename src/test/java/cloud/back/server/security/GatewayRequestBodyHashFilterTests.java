@@ -68,4 +68,24 @@ class GatewayRequestBodyHashFilterTests {
         assertThat(chainCalled).isFalse();
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE);
     }
+
+    @Test
+    void filter_stockBatchPath_doesNotConsumeOrLimitLegacyRequestBody() {
+        GatewayServiceAuthProperties properties = new GatewayServiceAuthProperties();
+        properties.setMaxSignedBodyBytes(4);
+        GatewayRequestBodyHashFilter filter = new GatewayRequestBodyHashFilter(properties);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/internal/stock-batch/v1/jobs/order-book-execution/run")
+                        .body("legacy-body")
+        );
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+
+        filter.filter(exchange, filteredExchange -> {
+            chainCalled.set(true);
+            return filteredExchange.getResponse().setComplete();
+        }).block();
+
+        assertThat(chainCalled).isTrue();
+        assertThat((String) exchange.getAttribute(GatewayRequestBodyHashFilter.CONTENT_SHA256_ATTRIBUTE)).isNull();
+    }
 }
