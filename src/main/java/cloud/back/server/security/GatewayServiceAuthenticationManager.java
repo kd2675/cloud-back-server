@@ -37,28 +37,24 @@ public class GatewayServiceAuthenticationManager implements ReactiveAuthenticati
         }
 
         try {
-            validateSecretConfigured();
             validateTimestamp(token.getTimestamp());
-            validateNonce(token.getGatewayId(), token.getNonce());
+            validateContentHash(token);
             validateSignature(token);
+            validateNonce(token.getGatewayId(), token.getNonce());
             return Mono.just(GatewayServiceAuthenticationToken.authenticated(
                     token.getGatewayId(),
                     token.getHttpMethod(),
                     token.getRequestPath(),
                     token.getTimestamp(),
                     token.getNonce(),
+                    token.getContentSha256(),
+                    token.getActualContentSha256(),
                     token.getSignature()
             ));
         } catch (AuthenticationException ex) {
             return Mono.error(ex);
         } catch (Exception ex) {
             return Mono.error(new BadCredentialsException("Invalid gateway authentication", ex));
-        }
-    }
-
-    private void validateSecretConfigured() {
-        if (authProperties.getSharedSecret() == null || authProperties.getSharedSecret().isBlank()) {
-            throw new BadCredentialsException("Gateway shared secret is not configured");
         }
     }
 
@@ -91,9 +87,14 @@ public class GatewayServiceAuthenticationManager implements ReactiveAuthenticati
                 token.getHttpMethod(),
                 token.getRequestPath(),
                 token.getTimestamp(),
-                token.getNonce()
+                token.getNonce(),
+                token.getContentSha256()
         );
-        String expectedSignature = hmacHex(payload, authProperties.getSharedSecret());
+        String secret = authProperties.resolveSecret(token.getGatewayId());
+        if (secret == null || secret.isBlank()) {
+            throw new BadCredentialsException("Gateway secret is not configured for gatewayId");
+        }
+        String expectedSignature = hmacHex(payload, secret);
         if (!MessageDigest.isEqual(
                 expectedSignature.getBytes(StandardCharsets.UTF_8),
                 token.getSignature().getBytes(StandardCharsets.UTF_8)
@@ -107,9 +108,19 @@ public class GatewayServiceAuthenticationManager implements ReactiveAuthenticati
             String httpMethod,
             String requestPath,
             String timestamp,
-            String nonce
+            String nonce,
+            String contentSha256
     ) {
-        return String.join("\n", gatewayId, httpMethod, requestPath, timestamp, nonce);
+        return String.join("\n", gatewayId, httpMethod, requestPath, timestamp, nonce, contentSha256);
+    }
+
+    private void validateContentHash(GatewayServiceAuthenticationToken token) {
+        if (!MessageDigest.isEqual(
+                token.getContentSha256().getBytes(StandardCharsets.UTF_8),
+                token.getActualContentSha256().getBytes(StandardCharsets.UTF_8)
+        )) {
+            throw new BadCredentialsException("Gateway request body hash mismatch");
+        }
     }
 
     public static String hmacHex(String payload, String secret) throws Exception {

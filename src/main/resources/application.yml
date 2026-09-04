@@ -21,7 +21,10 @@ app:
 gateway:
   auth:
     shared-secret: ${ZEROQ_GATEWAY_SHARED_SECRET:}
+    # 운영에서는 shared-secret 대신 SPRING_APPLICATION_JSON의 gateway.auth.gateway-secrets 맵 사용을 권장합니다.
+    gateway-secrets: {}
     allowed-clock-skew-seconds: ${ZEROQ_GATEWAY_ALLOWED_CLOCK_SKEW_SECONDS:300}
+    max-signed-body-bytes: ${ZEROQ_GATEWAY_MAX_SIGNED_BODY_BYTES:5242880}
 
 stock:
   batch:

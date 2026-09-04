@@ -11,6 +11,7 @@ public class GatewayServiceAuthenticationConverter implements ServerAuthenticati
     public static final String GATEWAY_ID_HEADER = "X-Gateway-Id";
     public static final String TIMESTAMP_HEADER = "X-Gateway-Timestamp";
     public static final String NONCE_HEADER = "X-Gateway-Nonce";
+    public static final String CONTENT_SHA256_HEADER = "X-Gateway-Content-SHA256";
     public static final String SIGNATURE_HEADER = "X-Gateway-Signature";
 
     @Override
@@ -18,9 +19,12 @@ public class GatewayServiceAuthenticationConverter implements ServerAuthenticati
         String gatewayId = exchange.getRequest().getHeaders().getFirst(GATEWAY_ID_HEADER);
         String timestamp = exchange.getRequest().getHeaders().getFirst(TIMESTAMP_HEADER);
         String nonce = exchange.getRequest().getHeaders().getFirst(NONCE_HEADER);
+        String contentSha256 = exchange.getRequest().getHeaders().getFirst(CONTENT_SHA256_HEADER);
         String signature = exchange.getRequest().getHeaders().getFirst(SIGNATURE_HEADER);
+        String actualContentSha256 = exchange.getAttribute(GatewayRequestBodyHashFilter.CONTENT_SHA256_ATTRIBUTE);
 
-        if (isBlank(gatewayId) || isBlank(timestamp) || isBlank(nonce) || isBlank(signature)) {
+        if (isBlank(gatewayId) || isBlank(timestamp) || isBlank(nonce)
+                || isBlank(contentSha256) || isBlank(actualContentSha256) || isBlank(signature)) {
             return Mono.empty();
         }
 
@@ -37,6 +41,8 @@ public class GatewayServiceAuthenticationConverter implements ServerAuthenticati
                 requestPath,
                 timestamp,
                 nonce,
+                contentSha256,
+                actualContentSha256,
                 signature
         ));
     }

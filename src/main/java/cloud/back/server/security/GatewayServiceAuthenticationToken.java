@@ -11,6 +11,8 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
     private final String requestPath;
     private final String timestamp;
     private final String nonce;
+    private final String contentSha256;
+    private final String actualContentSha256;
     private final String signature;
 
     public GatewayServiceAuthenticationToken(
@@ -19,6 +21,8 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
             String requestPath,
             String timestamp,
             String nonce,
+            String contentSha256,
+            String actualContentSha256,
             String signature
     ) {
         super(List.of());
@@ -27,6 +31,8 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
         this.requestPath = requestPath;
         this.timestamp = timestamp;
         this.nonce = nonce;
+        this.contentSha256 = contentSha256;
+        this.actualContentSha256 = actualContentSha256;
         this.signature = signature;
         setAuthenticated(false);
     }
@@ -37,6 +43,8 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
             String requestPath,
             String timestamp,
             String nonce,
+            String contentSha256,
+            String actualContentSha256,
             String signature,
             boolean authenticated
     ) {
@@ -46,6 +54,8 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
         this.requestPath = requestPath;
         this.timestamp = timestamp;
         this.nonce = nonce;
+        this.contentSha256 = contentSha256;
+        this.actualContentSha256 = actualContentSha256;
         this.signature = signature;
         setAuthenticated(authenticated);
     }
@@ -56,9 +66,21 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
             String requestPath,
             String timestamp,
             String nonce,
+            String contentSha256,
+            String actualContentSha256,
             String signature
     ) {
-        return new GatewayServiceAuthenticationToken(gatewayId, httpMethod, requestPath, timestamp, nonce, signature, true);
+        return new GatewayServiceAuthenticationToken(
+                gatewayId,
+                httpMethod,
+                requestPath,
+                timestamp,
+                nonce,
+                contentSha256,
+                actualContentSha256,
+                signature,
+                true
+        );
     }
 
     public String getGatewayId() {
@@ -79,6 +101,14 @@ public class GatewayServiceAuthenticationToken extends AbstractAuthenticationTok
 
     public String getNonce() {
         return nonce;
+    }
+
+    public String getContentSha256() {
+        return contentSha256;
+    }
+
+    public String getActualContentSha256() {
+        return actualContentSha256;
     }
 
     public String getSignature() {

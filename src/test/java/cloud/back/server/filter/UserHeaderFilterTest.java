@@ -74,6 +74,7 @@ class UserHeaderFilterTest {
                 .header("X-User-Key", "spoofed-user")
                 .header("X-User-Role", "ADMIN")
                 .header("X-Gateway-Signature", "incoming-signature")
+                .header("X-Gateway-Content-SHA256", "incoming-hash")
         );
         CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
         GatewayServiceAuthenticationToken authentication = GatewayServiceAuthenticationToken.authenticated(
@@ -82,6 +83,8 @@ class UserHeaderFilterTest {
                 "/internal/zeroq/gateway/sensor/ingest/batch",
                 "123",
                 "nonce",
+                "hash",
+                "hash",
                 "signature"
         );
 
@@ -97,6 +100,7 @@ class UserHeaderFilterTest {
         assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-Gateway-Id"))
                 .isEqualTo(List.of("GW-STORE-001"));
         assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Signature")).isFalse();
+        assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Content-SHA256")).isFalse();
     }
 
     @Test
@@ -105,6 +109,7 @@ class UserHeaderFilterTest {
                 .header("X-User-Key", "spoofed-user")
                 .header("X-User-Role", "ADMIN")
                 .header("X-Gateway-Signature", "incoming-signature")
+                .header("X-Gateway-Content-SHA256", "incoming-hash")
         );
         CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
         GatewayServiceAuthenticationToken authentication = GatewayServiceAuthenticationToken.authenticated(
@@ -113,6 +118,8 @@ class UserHeaderFilterTest {
                 "/internal/stock-batch/v1/jobs/order-book-execution/run",
                 "123",
                 "nonce",
+                "hash",
+                "hash",
                 "signature"
         );
 
@@ -128,6 +135,7 @@ class UserHeaderFilterTest {
         assertThat(chain.capturedExchange().getRequest().getHeaders().get("X-Gateway-Id"))
                 .isEqualTo(List.of("stock-smoke-gateway"));
         assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Signature")).isFalse();
+        assertThat(chain.capturedExchange().getRequest().getHeaders().containsHeader("X-Gateway-Content-SHA256")).isFalse();
     }
 
     private static class CapturingGatewayFilterChain implements GatewayFilterChain {

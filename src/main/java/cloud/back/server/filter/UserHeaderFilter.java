@@ -26,6 +26,7 @@ public class UserHeaderFilter implements GlobalFilter, Ordered {
             "X-Gateway-Id",
             "X-Gateway-Timestamp",
             "X-Gateway-Nonce",
+            "X-Gateway-Content-SHA256",
             "X-Gateway-Signature"
     );
 
