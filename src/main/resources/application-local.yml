@@ -1,0 +1,14 @@
+server:
+  # The shared development token must not expose the gateway on external interfaces.
+  address: 127.0.0.1
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+stock:
+  batch:
+    internal:
+      # Match stock-batch-service's local profile; an explicit token still takes precedence.
+      token: ${STOCK_BATCH_INTERNAL_TOKEN:local-stock-batch-internal-token}

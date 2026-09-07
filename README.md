@@ -1,5 +1,11 @@
 # cloud-back-server
 
+## 로컬 환경 파일
+
+이 프로젝트의 `.env.example`을 참고해 `.env`를 준비합니다. `CLOUD_JWT_SECRET`은 auth와 image의 JWT 키, `ZEROQ_GATEWAY_SHARED_SECRET`은 센서 gateway의 키와 맞춥니다. 실제 키는 커밋하지 않습니다.
+
+전체 포트·프로필·설정 검증은 워크스페이스의 [로컬 환경 가이드](../LOCAL_DEVELOPMENT.md)를 따릅니다. 기존 개인 환경 파일은 덮어쓰지 않습니다.
+
 Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 백엔드 서비스로 요청을 라우팅하며, 인증된 사용자 헤더와 gateway service 인증 헤더를 downstream 서비스로 전달합니다.
 
 ## 역할
@@ -16,6 +22,11 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 ```bash
 ./gradlew :cloud-back-server:bootRun
 ```
+
+- 프로필을 지정하지 않으면 `local`로 실행하며 `127.0.0.1:8080`에서만 수신합니다.
+- 로컬에서는 `STOCK_BATCH_INTERNAL_TOKEN`이 없어도 `stock-batch-service`의 `local` 프로필과 동일한 개발용 토큰을 사용합니다. 값을 직접 지정하면 양쪽 서버에 같은 값을 설정해야 합니다.
+- `dev`/`prod`처럼 다른 프로필을 명시하면 로컬 기본값은 적용되지 않으며 `STOCK_BATCH_INTERNAL_TOKEN`이 필요합니다. 배포 시에는 실행 프로필과 비밀값을 명시하세요.
+- JWT와 gateway HMAC 인증은 로컬에서도 유지됩니다. 이 설정은 인증 해제가 아니라 로컬 내부 토큰의 기본값 제공입니다.
 
 ## 빌드 / 테스트
 ```bash
@@ -68,7 +79,7 @@ Spring Cloud Gateway 기반 API 게이트웨이입니다. JWT를 검증하고 �
 - 여러 운영 gateway는 `gateway.auth.gateway-secrets` map을 `SPRING_APPLICATION_JSON` 등 secret store 연동 방식으로 주입합니다. map이 하나라도 있으면 등록되지 않은 gateway ID에 shared secret fallback을 적용하지 않습니다.
 - ZeroQ gateway 서명 대상 body 상한은 `ZEROQ_GATEWAY_MAX_SIGNED_BODY_BYTES`이며 기본 5MiB입니다. 이 본문 해시 계약은 stock-batch 내부 호출에는 적용하지 않습니다.
 - nonce replay cache는 현재 gateway 프로세스 메모리에만 있습니다. 다중 인스턴스 배포에서는 공용 replay store가 없으면 인스턴스 간 재전송을 막지 못합니다.
-- stock-batch 내부 API 토큰은 `STOCK_BATCH_INTERNAL_TOKEN`로 주입합니다.
+- stock-batch 내부 API 토큰은 `STOCK_BATCH_INTERNAL_TOKEN`로 주입합니다. `local`에서만 미설정 시 개발용 기본값을 사용합니다.
 - gateway secret 기본값은 비어 있습니다. 내부 gateway 경로를 쓰려면 로컬에서도 명시적으로 설정해야 합니다.
 - CORS 허용 origin은 현재 `3000`~`3003`, `3005` 프론트 개발 포트 위주로 설정돼 있습니다.
 - 인증 후 사용자 정보는 필터에서 downstream 헤더로 전달됩니다.
