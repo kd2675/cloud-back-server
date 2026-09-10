@@ -27,6 +27,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class SecurityConfigurationTest {
 
+    @Test
+    void semoPersonalSpace_withoutAuthorization_isRejected() {
+        assertThat(getStatus("/api/semo/v1/profile/space")).isEqualTo(401);
+    }
+
+    @Test
+    void semoDiscovery_withoutAuthorization_isRejected() {
+        assertThat(getStatus("/api/semo/v1/discovery/clubs?query=book&page=0")).isEqualTo(401);
+    }
+
+    @Test
+    void semoDiscoveryDetail_withoutAuthorization_isRejected() {
+        assertThat(getStatus("/api/semo/v1/discovery/clubs/1")).isEqualTo(401);
+    }
+
+    @Test
+    void semoDiscoveryNamespaceWrite_withoutAuthorization_isRejected() {
+        assertThat(postStatus("/api/semo/v1/discovery/clubs")).isEqualTo(401);
+    }
+
+    @Test
+    void semoDiscoveryNamespaceNestedResource_withoutAuthorization_isRejected() {
+        assertThat(getStatus("/api/semo/v1/discovery/clubs/1/members")).isEqualTo(401);
+    }
+
+    @Test
+    void semoJoinPreview_withoutAuthorization_isRejected() {
+        assertThat(getStatus("/api/semo/v1/clubs/1/join-preview")).isEqualTo(401);
+    }
+
     private static final String TEST_JWT_SECRET = "test-secret-key-for-cloud-back-server-jwt-hs512-minimum-length-64-chars-1234567890";
 
     @LocalServerPort
